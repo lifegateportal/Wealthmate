@@ -19,7 +19,7 @@ export default function Navigation({
 
   return (
     <nav className={`fixed bottom-0 left-0 right-0 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} border-t md:relative md:w-64 md:border-t-0 md:border-r md:h-screen md:flex-shrink-0 z-50 shadow-lg md:shadow-none transition-colors`}>
-      <div className="flex md:flex-col justify-around md:justify-start h-16 md:h-full p-2 md:p-6 space-x-1 md:space-x-0 md:space-y-2">
+      <div className="flex md:flex-col items-center md:items-stretch md:justify-start h-16 md:h-full px-2 md:p-6 gap-1 md:gap-2 overflow-x-auto md:overflow-visible">
         <div className="hidden md:flex items-center justify-between gap-3 mb-8 px-2">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-600 rounded-lg text-white"><IconDollar /></div>
@@ -39,14 +39,14 @@ export default function Navigation({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col md:flex-row items-center md:px-4 py-2 rounded-xl flex-1 md:flex-none transition-all ${
+            className={`flex flex-col md:flex-row items-center justify-center md:justify-start px-2 md:px-4 py-2 rounded-xl min-w-[68px] md:min-w-0 md:w-full md:flex-none transition-all ${
               activeTab === tab.id
                 ? 'text-indigo-500 bg-indigo-500/10 font-semibold'
                 : `${theme.textMuted} ${theme.hover}`
             }`}
           >
             <div className="mb-1 md:mb-0 md:mr-3">{tab.icon}</div>
-            <span className="text-[10px] md:text-sm">{tab.label}</span>
+            <span className="text-[10px] leading-none md:text-sm md:leading-normal whitespace-nowrap">{tab.label}</span>
           </button>
         ))}
 

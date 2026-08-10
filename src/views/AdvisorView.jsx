@@ -131,7 +131,7 @@ export default function AdvisorView({
         <p className={`${theme.textMuted} text-sm`}>Chat with your personalized AI financial advisor.</p>
       </header>
 
-      <div className={`flex-1 ${theme.card} rounded-2xl border shadow-sm flex flex-col overflow-hidden min-h-[400px] max-h-[600px]`}>
+      <div className={`flex-1 ${theme.card} rounded-2xl border shadow-sm flex flex-col overflow-hidden min-h-[320px] md:min-h-[400px] max-h-[70vh] md:max-h-[600px]`}>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {chatHistory.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -158,7 +158,7 @@ export default function AdvisorView({
           <div ref={chatEndRef} />
         </div>
 
-        <form onSubmit={handleSend} className={`p-3 border-t ${theme.border} ${isDark ? 'bg-slate-800' : 'bg-white'} flex gap-2`}>
+        <form onSubmit={handleSend} className={`p-3 border-t ${theme.border} ${isDark ? 'bg-slate-800' : 'bg-white'} flex items-end gap-2`}>
           <input
             type="text"
             value={inputMsg}
@@ -166,7 +166,7 @@ export default function AdvisorView({
             placeholder="Ask about your budget, spending trends..."
             className={`flex-1 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow ${theme.input}`}
           />
-          <button type="submit" disabled={isLoading || !inputMsg.trim()} className="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={isLoading || !inputMsg.trim()} className="shrink-0 bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors">
             <IconSend />
           </button>
         </form>

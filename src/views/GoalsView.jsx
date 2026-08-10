@@ -25,12 +25,12 @@ export default function GoalsView({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="flex justify-between items-center">
+      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h2 className={`text-2xl font-bold ${theme.text} flex items-center gap-2`}>Savings Goals <span className="text-[10px] bg-gradient-to-r from-amber-200 to-amber-400 text-amber-900 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Premium</span></h2>
           <p className={`${theme.textMuted} text-sm`}>Set targets and track your progress towards financial freedom.</p>
         </div>
-        <button onClick={() => setIsAdding(!isAdding)} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors">
+        <button onClick={() => setIsAdding(!isAdding)} className="w-full sm:w-auto justify-center flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors">
           <IconPlus /> <span className="hidden sm:inline">New Goal</span>
         </button>
       </header>

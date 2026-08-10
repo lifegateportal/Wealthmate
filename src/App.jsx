@@ -195,7 +195,7 @@ export default function App() {
 
   return (
     <div className={`min-h-screen ${theme.bg} font-sans transition-colors duration-300`}>
-      <div className="flex h-screen">
+      <div className="flex min-h-dvh md:h-screen flex-col md:flex-row">
         <Navigation
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -204,7 +204,7 @@ export default function App() {
           theme={theme}
         />
 
-        <main className="flex-1 h-screen overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
           <div className="max-w-6xl mx-auto">
             {activeTab === 'dashboard' && (
               <DashboardView

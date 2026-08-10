@@ -73,7 +73,7 @@ export default function DashboardView({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="flex justify-between items-center">
+      <header className="flex justify-between items-start sm:items-center gap-3">
         <div>
           <h2 className={`text-2xl font-bold ${theme.text}`}>Financial Overview</h2>
           <p className={`${theme.textMuted} text-sm`}>Your money at a glance for {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}.</p>
@@ -120,9 +120,9 @@ export default function DashboardView({
         </div>
       </div>
 
-      <div className={`mt-6 ${theme.card} rounded-2xl p-6 border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r ${isDark ? 'from-slate-800 to-slate-800' : 'from-white to-gray-50'} overflow-hidden relative`}>
+      <div className={`mt-6 ${theme.card} rounded-2xl p-6 border shadow-sm flex flex-col md:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r ${isDark ? 'from-slate-800 to-slate-800' : 'from-white to-gray-50'} overflow-hidden relative`}>
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
-        <div className="flex items-center gap-6 z-10">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 z-10">
           <div className="relative w-20 h-20 flex items-center justify-center">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
               <path className="text-gray-200 dark:text-slate-700" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -135,7 +135,7 @@ export default function DashboardView({
             <p className={`${theme.textMuted} text-sm mt-1 max-w-md`}>Your score is based on your saving rate, budget adherence, and upcoming bills.</p>
           </div>
         </div>
-        <button onClick={() => setActiveTab('advisor')} className="z-10 px-4 py-2 bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 font-medium rounded-xl hover:bg-indigo-600/20 transition-colors flex items-center gap-2">
+        <button onClick={() => setActiveTab('advisor')} className="z-10 w-full sm:w-auto px-4 py-2 bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 font-medium rounded-xl hover:bg-indigo-600/20 transition-colors flex items-center justify-center gap-2">
           <IconBrain /> Ask Advisor
         </button>
       </div>
@@ -193,9 +193,9 @@ export default function DashboardView({
       </div>
 
       <div className={`${theme.card} rounded-2xl p-6 border shadow-sm mt-6`}>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
           <h3 className={`text-lg font-semibold ${theme.text}`}>6-Month Cash Flow Trend</h3>
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Income</span>
             <span className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-500"></div> Expenses</span>
           </div>

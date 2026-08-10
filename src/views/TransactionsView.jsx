@@ -129,7 +129,7 @@ export default function TransactionsView({
           <h2 className={`text-2xl font-bold ${theme.text}`}>Ledger</h2>
           <p className={`${theme.textMuted} text-sm`}>Search, filter, and export your history.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button onClick={exportCSV} className={`flex items-center gap-2 ${theme.card} ${theme.text} border px-4 py-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900 transition-colors`}>
             <IconDownload /> <span className="hidden sm:inline">Export</span>
           </button>
@@ -204,14 +204,14 @@ export default function TransactionsView({
       <div className={`${theme.card} rounded-2xl border shadow-sm overflow-hidden`}>
         <div className={`p-4 border-b ${theme.border} flex flex-col sm:flex-row gap-4`}>
           <input type="text" placeholder="Search merchants or categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`flex-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 ${theme.input}`} />
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className={`p-2 border rounded-lg outline-none ${theme.input}`}>
+          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className={`w-full sm:w-auto p-2 border rounded-lg outline-none ${theme.input}`}>
             <option value="all">All Types</option>
             <option value="expense">Expenses Only</option>
             <option value="income">Income Only</option>
           </select>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+          <table className="w-full min-w-[680px] text-left text-sm text-gray-600 dark:text-gray-300">
             <thead className={`${isDark ? 'bg-slate-800/50 text-slate-400' : 'bg-gray-50 text-gray-700'} text-xs uppercase font-semibold`}>
               <tr>
                 <th className="px-6 py-4">Date</th>

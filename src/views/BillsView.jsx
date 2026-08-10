@@ -43,12 +43,12 @@ export default function BillsView({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
-      <header className="flex justify-between items-center">
+      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h2 className={`text-2xl font-bold ${theme.text}`}>Monthly Bills</h2>
           <p className={`${theme.textMuted} text-sm`}>Track recurring payments and auto-log them.</p>
         </div>
-        <button onClick={() => setIsAdding(!isAdding)} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors">
+        <button onClick={() => setIsAdding(!isAdding)} className="w-full sm:w-auto justify-center flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors">
           <IconPlus /> <span className="hidden sm:inline">Add Bill</span>
         </button>
       </header>
@@ -67,7 +67,7 @@ export default function BillsView({
             <label className={`block text-xs ${theme.textMuted} mb-1`}>Due Date</label>
             <input type="date" value={newBill.dueDate} onChange={e => setNewBill({ ...newBill, dueDate: e.target.value })} className={`w-full p-2 border rounded-lg outline-none ${theme.input}`} required />
           </div>
-          <button type="submit" className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 font-medium">Save Bill</button>
+          <button type="submit" className="w-full md:w-auto bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 font-medium">Save Bill</button>
         </form>
       )}
 
