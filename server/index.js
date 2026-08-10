@@ -14,6 +14,7 @@ const requiredEnv = [
   'R2_ACCOUNT_ID',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
+  'OWNER_PASSWORD',
   bucketName ? null : 'R2_BUCKET',
   bucketName ? null : 'R2_BUCKET_NAME',
 ];
@@ -31,8 +32,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const sessionMaxAgeMs = 1000 * 60 * 60 * 24 * 7;
 const allowedOrigins = corsOrigin.split(',').map((value) => value.trim()).filter(Boolean);
 const OWNER_USERNAME = 'owner';
-// Change this constant to your own private password.
-const OWNER_PASSWORD = 'WealthmateOnlyMe#2026';
+const OWNER_PASSWORD = String(process.env.OWNER_PASSWORD || '').trim();
 
 const r2Client = new S3Client({
   region: 'auto',
