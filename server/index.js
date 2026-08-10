@@ -44,14 +44,28 @@ const r2Client = new S3Client({
 });
 
 const app = express();
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin) {
-      callback(null, true);
-      return;
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (!isProduction) return true;
+
+  return allowedOrigins.some((allowed) => {
+    if (allowed === '*') return true;
+    if (allowed === origin) return true;
+
+    // Supports entries like "https://*.app.github.dev"
+    if (allowed.includes('*')) {
+      const escaped = allowed.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      return new RegExp(`^${escaped}$`).test(origin);
     }
 
-    if (allowedOrigins.includes(origin)) {
+    return false;
+  });
+};
+
+app.use(cors({
+  origin(origin, callback) {
+    if (isOriginAllowed(origin)) {
       callback(null, true);
       return;
     }
