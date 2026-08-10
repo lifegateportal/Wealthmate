@@ -33,6 +33,8 @@ const sessionMaxAgeMs = 1000 * 60 * 60 * 24 * 7;
 const allowedOrigins = corsOrigin.split(',').map((value) => value.trim()).filter(Boolean);
 const OWNER_USERNAME = 'owner';
 const OWNER_PASSWORD = String(process.env.OWNER_PASSWORD || '').trim();
+const deepSeekApiKey = String(process.env.DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY || '').trim();
+const deepSeekApiUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/chat/completions';
 
 const r2Client = new S3Client({
   region: 'auto',
@@ -293,6 +295,53 @@ app.post('/api/state/save', requireCookieAuth, async (req, res) => {
   } catch (error) {
     console.error('Save state failed', error);
     res.status(500).json({ error: 'Could not save state to cloud.' });
+  }
+});
+
+app.post('/api/ai/chat', requireCookieAuth, async (req, res) => {
+  try {
+    if (!deepSeekApiKey) {
+      res.status(500).json({ error: 'Missing server DeepSeek API key.' });
+      return;
+    }
+
+    const model = String(req.body?.model || 'deepseek-chat').trim();
+    const messages = req.body?.messages;
+    const temperature = Number(req.body?.temperature ?? 0.7);
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      res.status(400).json({ error: 'Messages are required.' });
+      return;
+    }
+
+    const response = await fetch(deepSeekApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${deepSeekApiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: Number.isFinite(temperature) ? temperature : 0.7,
+      }),
+    });
+
+    const payload = await response.json().catch(async () => {
+      const fallbackText = await response.text();
+      return { error: fallbackText || 'Unexpected AI response.' };
+    });
+
+    if (!response.ok) {
+      const errorMessage = payload?.error?.message || payload?.error || `DeepSeek error ${response.status}`;
+      res.status(response.status).json({ error: errorMessage });
+      return;
+    }
+
+    res.json(payload);
+  } catch (error) {
+    console.error('AI chat failed', error);
+    res.status(500).json({ error: 'Failed to reach AI service.' });
   }
 });
 

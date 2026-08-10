@@ -61,13 +61,6 @@ export default function AdvisorView({
   const handleSend = async (e) => {
     e.preventDefault();
     if (!inputMsg.trim()) return;
-    if (!aiConfig.apiKey) {
-      setChatHistory([
-        ...chatHistory,
-        { role: 'assistant', text: 'Missing DeepSeek API key. Add your key in App AI config first.' },
-      ]);
-      return;
-    }
 
     const userMessage = { role: 'user', text: inputMsg };
     const newHistory = [...chatHistory, userMessage];
@@ -96,17 +89,18 @@ export default function AdvisorView({
         messages,
         temperature: 0.7,
       };
-      const response = await fetch(aiConfig.apiUrl, {
+      const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${aiConfig.apiKey}`,
         },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error(`DeepSeek error ${response.status}`);
+        const errorPayload = await response.json().catch(() => ({}));
+        throw new Error(errorPayload.error || `DeepSeek error ${response.status}`);
       }
 
       const result = await response.json();
@@ -118,7 +112,7 @@ export default function AdvisorView({
     } catch (err) {
       setChatHistory([
         ...newHistory,
-        { role: 'assistant', text: 'Sorry, I had trouble connecting to DeepSeek. Please try again.' },
+        { role: 'assistant', text: `Sorry, I had trouble connecting to DeepSeek. ${err.message || 'Please try again.'}` },
       ]);
     }
     setIsLoading(false);
