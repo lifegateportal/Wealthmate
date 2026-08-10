@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IconPlus, IconCheck, IconCalendar } from '../components/icons';
+import { IconPlus, IconCheck, IconCalendar, IconTrash } from '../components/icons';
 
 export default function BillsView({
   theme,
@@ -14,14 +14,14 @@ export default function BillsView({
   const handleAdd = (e) => {
     e.preventDefault();
     if (!newBill.name || !newBill.amount) return;
-    setBills([{ ...newBill, amount: parseFloat(newBill.amount), id: Date.now(), isPaid: false }, ...bills]);
+    setBills((prev) => [{ ...newBill, amount: parseFloat(newBill.amount), id: Date.now(), isPaid: false }, ...prev]);
     setIsAdding(false);
     setNewBill({ name: '', amount: '', dueDate: new Date().toISOString().split('T')[0], category: 'Bills' });
   };
 
   const handleTogglePaid = (bill) => {
     const isNowPaid = !bill.isPaid;
-    setBills(bills.map(b => b.id === bill.id ? { ...b, isPaid: isNowPaid } : b));
+    setBills((prev) => prev.map((b) => (b.id === bill.id ? { ...b, isPaid: isNowPaid } : b)));
 
     if (isNowPaid) {
       if (window.confirm(`Do you want to automatically add "${bill.name}" (${formatCurrency(bill.amount)}) to your ledger as an expense?`)) {
@@ -34,6 +34,11 @@ export default function BillsView({
         });
       }
     }
+  };
+
+  const handleDeleteBill = (bill) => {
+    if (!window.confirm(`Remove \"${bill.name}\" from monthly bills?`)) return;
+    setBills((prev) => prev.filter((b) => b.id !== bill.id));
   };
 
   return (
@@ -73,9 +78,19 @@ export default function BillsView({
               <div className={`p-3 rounded-xl ${bill.isPaid ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                 {bill.isPaid ? <IconCheck /> : <IconCalendar />}
               </div>
-              <button onClick={() => handleTogglePaid(bill)} className={`text-sm font-medium px-3 py-1 rounded-full border transition-colors ${bill.isPaid ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                {bill.isPaid ? 'Paid' : 'Mark as Paid'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => handleTogglePaid(bill)} className={`text-sm font-medium px-3 py-1 rounded-full border transition-colors ${bill.isPaid ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                  {bill.isPaid ? 'Paid' : 'Mark as Paid'}
+                </button>
+                <button
+                  onClick={() => handleDeleteBill(bill)}
+                  className="p-2 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors"
+                  aria-label={`Delete ${bill.name}`}
+                  title="Delete bill"
+                >
+                  <IconTrash width="16" height="16" />
+                </button>
+              </div>
             </div>
             <h3 className={`text-xl font-bold ${theme.text}`}>{bill.name}</h3>
             <p className={`text-2xl font-light ${theme.textMuted} my-2`}>{formatCurrency(bill.amount)}</p>
