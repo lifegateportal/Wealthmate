@@ -30,6 +30,9 @@ const sessionSecret = process.env.SESSION_SECRET || process.env.R2_SECRET_ACCESS
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionMaxAgeMs = 1000 * 60 * 60 * 24 * 7;
 const allowedOrigins = corsOrigin.split(',').map((value) => value.trim()).filter(Boolean);
+const OWNER_USERNAME = 'owner';
+// Change this constant to your own private password.
+const OWNER_PASSWORD = 'WealthmateOnlyMe#2026';
 
 const r2Client = new S3Client({
   region: 'auto',
@@ -60,10 +63,7 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '2mb' }));
 
-const hashPassword = (password) =>
-  crypto.createHash('sha256').update(password).digest('hex');
-
-const normalizeUsername = (username) => String(username || '').trim().toLowerCase();
+const normalizeUsername = () => OWNER_USERNAME;
 
 const toBase64Url = (value) =>
   Buffer.from(value).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
@@ -126,8 +126,8 @@ const clearAuthCookie = (res) => {
   });
 };
 
-const userObjectKey = (username) => {
-  const normalized = normalizeUsername(username);
+const userObjectKey = () => {
+  const normalized = normalizeUsername();
   if (!normalized) return null;
   const safe = normalized.replace(/[^a-z0-9._-]/g, '_');
   return `users/${safe}.json`;
@@ -141,8 +141,8 @@ const streamToString = async (stream) => {
   return Buffer.concat(chunks).toString('utf-8');
 };
 
-const readUserRecord = async (username) => {
-  const key = userObjectKey(username);
+const readUserRecord = async () => {
+  const key = userObjectKey();
   if (!key) return null;
 
   try {
@@ -163,8 +163,8 @@ const readUserRecord = async (username) => {
   }
 };
 
-const writeUserRecord = async (username, record) => {
-  const key = userObjectKey(username);
+const writeUserRecord = async (record) => {
+  const key = userObjectKey();
   if (!key) throw new Error('Invalid username.');
 
   await r2Client.send(
@@ -177,18 +177,6 @@ const writeUserRecord = async (username, record) => {
   );
 };
 
-const authenticate = async (username, password) => {
-  const record = await readUserRecord(username);
-  if (!record) return { ok: false, error: 'Account not found.' };
-
-  const passwordHash = hashPassword(password || '');
-  if (passwordHash !== record.passwordHash) {
-    return { ok: false, error: 'Invalid username or password.' };
-  }
-
-  return { ok: true, record };
-};
-
 const requireCookieAuth = async (req, res, next) => {
   try {
     const sessionToken = req.cookies?.wm_auth;
@@ -198,7 +186,13 @@ const requireCookieAuth = async (req, res, next) => {
       return;
     }
 
-    const record = await readUserRecord(session.username);
+    if (session.username !== OWNER_USERNAME) {
+      clearAuthCookie(res);
+      res.status(401).json({ error: 'Session is no longer valid.' });
+      return;
+    }
+
+    const record = await readUserRecord();
     if (!record) {
       clearAuthCookie(res);
       res.status(401).json({ error: 'Session is no longer valid.' });
@@ -215,57 +209,37 @@ const requireCookieAuth = async (req, res, next) => {
 };
 
 app.post('/api/auth/register', async (req, res) => {
-  try {
-    const username = normalizeUsername(req.body?.username);
-    const password = String(req.body?.password || '').trim();
-
-    if (!username || !password) {
-      res.status(400).json({ error: 'Username and password are required.' });
-      return;
-    }
-
-    const existing = await readUserRecord(username);
-    if (existing) {
-      res.status(409).json({ error: 'Username already exists.' });
-      return;
-    }
-
-    const now = new Date().toISOString();
-    const record = {
-      username,
-      passwordHash: hashPassword(password),
-      state: null,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await writeUserRecord(username, record);
-    setAuthCookie(res, username);
-    res.status(201).json({ ok: true, username, state: null });
-  } catch (error) {
-    console.error('Register failed', error);
-    res.status(500).json({ error: 'Could not register account.' });
-  }
+  res.status(403).json({ error: 'Registration is disabled in owner-password mode.' });
 });
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const username = normalizeUsername(req.body?.username);
     const password = String(req.body?.password || '').trim();
 
-    if (!username || !password) {
-      res.status(400).json({ error: 'Username and password are required.' });
+    if (!password) {
+      res.status(400).json({ error: 'Password is required.' });
       return;
     }
 
-    const authResult = await authenticate(username, password);
-    if (!authResult.ok) {
-      res.status(401).json({ error: authResult.error });
+    if (password !== OWNER_PASSWORD) {
+      res.status(401).json({ error: 'Invalid password.' });
       return;
     }
 
-    setAuthCookie(res, username);
-    res.json({ ok: true, username, state: authResult.record.state || null });
+    let record = await readUserRecord();
+    if (!record) {
+      const now = new Date().toISOString();
+      record = {
+        username: OWNER_USERNAME,
+        state: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await writeUserRecord(record);
+    }
+
+    setAuthCookie(res, OWNER_USERNAME);
+    res.json({ ok: true, username: OWNER_USERNAME, state: record.state || null });
   } catch (error) {
     console.error('Login failed', error);
     res.status(500).json({ error: 'Could not sign in.' });
@@ -300,7 +274,7 @@ app.post('/api/state/save', requireCookieAuth, async (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    await writeUserRecord(req.authUser, updatedRecord);
+    await writeUserRecord(updatedRecord);
     res.json({ ok: true });
   } catch (error) {
     console.error('Save state failed', error);

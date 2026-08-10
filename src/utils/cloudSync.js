@@ -24,11 +24,8 @@ const apiRequest = async (path, body) => {
   return payload;
 };
 
-export const registerUser = ({ username, password }) =>
-  apiRequest('/api/auth/register', { username, password });
-
-export const loginUser = ({ username, password }) =>
-  apiRequest('/api/auth/login', { username, password });
+export const loginOwner = ({ password }) =>
+  apiRequest('/api/auth/login', { password });
 
 export const saveUserState = ({ state }) =>
   apiRequest('/api/state/save', { state });

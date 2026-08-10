@@ -11,9 +11,8 @@ import { TRANSACTION_CATEGORIES } from './utils/constants';
 import { createTheme } from './utils/theme';
 import {
   getCurrentSession,
-  loginUser,
+  loginOwner,
   logoutUser,
-  registerUser,
   saveUserState,
 } from './utils/cloudSync';
 import { formatCurrency } from './utils/format';
@@ -244,23 +243,21 @@ export default function App() {
     return normalized;
   };
 
-  const handleAuthenticate = ({ username, password, mode }) => {
-    const normalizedUsername = (username || '').trim();
+  const handleAuthenticate = ({ password }) => {
     const normalizedPassword = (password || '').trim();
 
-    if (!normalizedUsername || !normalizedPassword) {
-      return { ok: false, message: 'Username and password are required.' };
+    if (!normalizedPassword) {
+      return { ok: false, message: 'Password is required.' };
     }
 
     return Promise.resolve().then(async () => {
       try {
-        const payload = { username: normalizedUsername, password: normalizedPassword };
-        const response = mode === 'register' ? await registerUser(payload) : await loginUser(payload);
+        const response = await loginOwner({ password: normalizedPassword });
 
         applyCloudState(response?.state);
 
         hasLoadedCloudState.current = true;
-        setSessionUser(response?.username || normalizedUsername.toLowerCase());
+        setSessionUser(response?.username || 'owner');
         setCloudSyncError('');
         return { ok: true };
       } catch (error) {
