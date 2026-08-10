@@ -11,6 +11,7 @@ const apiRequest = async (path, body) => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(body),
   });
 
@@ -29,5 +30,21 @@ export const registerUser = ({ username, password }) =>
 export const loginUser = ({ username, password }) =>
   apiRequest('/api/auth/login', { username, password });
 
-export const saveUserState = ({ username, password, state }) =>
-  apiRequest('/api/state/save', { username, password, state });
+export const saveUserState = ({ state }) =>
+  apiRequest('/api/state/save', { state });
+
+export const getCurrentSession = async () => {
+  const response = await fetch(getApiUrl('/api/auth/me'), {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error || 'Not authenticated.');
+  }
+
+  return payload;
+};
+
+export const logoutUser = () => apiRequest('/api/auth/logout', {});

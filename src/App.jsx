@@ -9,16 +9,20 @@ import ScannerView from './views/ScannerView';
 import AdvisorView from './views/AdvisorView';
 import { TRANSACTION_CATEGORIES } from './utils/constants';
 import { createTheme } from './utils/theme';
-import { loginUser, registerUser, saveUserState } from './utils/cloudSync';
+import {
+  getCurrentSession,
+  loginUser,
+  logoutUser,
+  registerUser,
+  saveUserState,
+} from './utils/cloudSync';
 import { formatCurrency } from './utils/format';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDark, setIsDark] = useState(() => JSON.parse(localStorage.getItem('wm_dark')) || false);
-  const [sessionAuth, setSessionAuth] = useState(() => {
-    const saved = sessionStorage.getItem('wm_session_auth');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [sessionUser, setSessionUser] = useState('');
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [cloudSyncError, setCloudSyncError] = useState('');
   const hasLoadedCloudState = useRef(false);
   const syncTimeoutRef = useRef(null);
@@ -77,14 +81,21 @@ export default function App() {
     return TRANSACTION_CATEGORIES;
   });
 
-  useEffect(() => localStorage.setItem('wm_dark', JSON.stringify(isDark)), [isDark]);
-  useEffect(() => {
-    if (!sessionAuth) {
-      sessionStorage.removeItem('wm_session_auth');
-      return;
+  const applyCloudState = (cloudState) => {
+    if (!cloudState || typeof cloudState !== 'object') return;
+
+    if (typeof cloudState.isDark === 'boolean') setIsDark(cloudState.isDark);
+    if (typeof cloudState.income === 'number') setIncome(cloudState.income);
+    if (Array.isArray(cloudState.transactions)) setTransactions(cloudState.transactions);
+    if (Array.isArray(cloudState.bills)) setBills(cloudState.bills);
+    if (Array.isArray(cloudState.budgets)) setBudgets(cloudState.budgets);
+    if (Array.isArray(cloudState.savingsGoals)) setSavingsGoals(cloudState.savingsGoals);
+    if (Array.isArray(cloudState.categories) && cloudState.categories.length > 0) {
+      setCategories(cloudState.categories);
     }
-    sessionStorage.setItem('wm_session_auth', JSON.stringify(sessionAuth));
-  }, [sessionAuth]);
+  };
+
+  useEffect(() => localStorage.setItem('wm_dark', JSON.stringify(isDark)), [isDark]);
   useEffect(() => localStorage.setItem('wm_income', JSON.stringify(income)), [income]);
   useEffect(() => localStorage.setItem('wm_transactions', JSON.stringify(transactions)), [transactions]);
   useEffect(() => localStorage.setItem('wm_bills', JSON.stringify(bills)), [bills]);
@@ -109,6 +120,32 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      try {
+        const session = await getCurrentSession();
+        if (!isMounted) return;
+
+        setSessionUser(session.username || '');
+        applyCloudState(session.state);
+        hasLoadedCloudState.current = true;
+        setCloudSyncError('');
+      } catch {
+        if (!isMounted) return;
+        setSessionUser('');
+      } finally {
+        if (isMounted) setIsSessionLoading(false);
+      }
+    };
+
+    restoreSession();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const parseTransactionDate = (value) => {
     if (!value) return null;
@@ -220,21 +257,10 @@ export default function App() {
         const payload = { username: normalizedUsername, password: normalizedPassword };
         const response = mode === 'register' ? await registerUser(payload) : await loginUser(payload);
 
-        const cloudState = response?.state;
-        if (cloudState && typeof cloudState === 'object') {
-          if (typeof cloudState.isDark === 'boolean') setIsDark(cloudState.isDark);
-          if (typeof cloudState.income === 'number') setIncome(cloudState.income);
-          if (Array.isArray(cloudState.transactions)) setTransactions(cloudState.transactions);
-          if (Array.isArray(cloudState.bills)) setBills(cloudState.bills);
-          if (Array.isArray(cloudState.budgets)) setBudgets(cloudState.budgets);
-          if (Array.isArray(cloudState.savingsGoals)) setSavingsGoals(cloudState.savingsGoals);
-          if (Array.isArray(cloudState.categories) && cloudState.categories.length > 0) {
-            setCategories(cloudState.categories);
-          }
-        }
+        applyCloudState(response?.state);
 
         hasLoadedCloudState.current = true;
-        setSessionAuth(payload);
+        setSessionUser(response?.username || normalizedUsername.toLowerCase());
         setCloudSyncError('');
         return { ok: true };
       } catch (error) {
@@ -243,14 +269,15 @@ export default function App() {
     });
   };
 
-  const handleLogout = () => {
-    setSessionAuth(null);
+  const handleLogout = async () => {
+    await logoutUser().catch(() => null);
+    setSessionUser('');
     hasLoadedCloudState.current = false;
     setActiveTab('dashboard');
   };
 
   useEffect(() => {
-    if (!sessionAuth || !hasLoadedCloudState.current) return;
+    if (!sessionUser || !hasLoadedCloudState.current) return;
 
     if (syncTimeoutRef.current) {
       clearTimeout(syncTimeoutRef.current);
@@ -269,8 +296,6 @@ export default function App() {
     syncTimeoutRef.current = setTimeout(async () => {
       try {
         await saveUserState({
-          username: sessionAuth.username,
-          password: sessionAuth.password,
           state: stateSnapshot,
         });
         setCloudSyncError('');
@@ -284,10 +309,17 @@ export default function App() {
         clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, [sessionAuth, isDark, income, transactions, bills, budgets, savingsGoals, categories]);
+  }, [sessionUser, isDark, income, transactions, bills, budgets, savingsGoals, categories]);
 
   const theme = createTheme(isDark);
-  const sessionUser = sessionAuth?.username || '';
+
+  if (isSessionLoading) {
+    return (
+      <div className={`min-h-dvh ${theme.bg} flex items-center justify-center`}>
+        <p className={`${theme.textMuted} text-sm`}>Checking session...</p>
+      </div>
+    );
+  }
 
   if (!sessionUser) {
     return (
