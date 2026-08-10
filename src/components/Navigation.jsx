@@ -6,6 +6,8 @@ export default function Navigation({
   setActiveTab,
   isDark,
   setIsDark,
+  sessionUser,
+  onLogout,
   theme,
 }) {
   const tabs = [
@@ -51,10 +53,16 @@ export default function Navigation({
         ))}
 
         <div className="hidden md:flex mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
-          <button onClick={() => setIsDark(!isDark)} className={`w-full flex items-center justify-center gap-2 p-2 rounded-lg ${theme.hover} ${theme.textMuted}`}>
-            {isDark ? <IconSun /> : <IconMoon />}
-            <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
-          </button>
+          <div className="w-full space-y-2">
+            <p className={`text-xs px-2 ${theme.textMuted}`}>Signed in as {sessionUser}</p>
+            <button onClick={() => setIsDark(!isDark)} className={`w-full flex items-center justify-center gap-2 p-2 rounded-lg ${theme.hover} ${theme.textMuted}`}>
+              {isDark ? <IconSun /> : <IconMoon />}
+              <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+            </button>
+            <button onClick={onLogout} className="w-full p-2 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40 transition-colors text-sm">
+              Log out
+            </button>
+          </div>
         </div>
       </div>
     </nav>

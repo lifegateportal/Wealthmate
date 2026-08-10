@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Navigation from './components/Navigation';
+import AuthView from './views/AuthView';
 import DashboardView from './views/DashboardView';
 import TransactionsView from './views/TransactionsView';
 import BillsView from './views/BillsView';
@@ -13,6 +14,11 @@ import { formatCurrency } from './utils/format';
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDark, setIsDark] = useState(() => JSON.parse(localStorage.getItem('wm_dark')) || false);
+  const [authCredentials, setAuthCredentials] = useState(() => {
+    const saved = localStorage.getItem('wm_auth_credentials');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [sessionUser, setSessionUser] = useState(() => localStorage.getItem('wm_session_user') || '');
 
   const [income, setIncome] = useState(() => JSON.parse(localStorage.getItem('wm_income')) || 5000);
   const [transactions, setTransactions] = useState(() => {
@@ -69,6 +75,20 @@ export default function App() {
   });
 
   useEffect(() => localStorage.setItem('wm_dark', JSON.stringify(isDark)), [isDark]);
+  useEffect(() => {
+    if (!authCredentials) {
+      localStorage.removeItem('wm_auth_credentials');
+      return;
+    }
+    localStorage.setItem('wm_auth_credentials', JSON.stringify(authCredentials));
+  }, [authCredentials]);
+  useEffect(() => {
+    if (!sessionUser) {
+      localStorage.removeItem('wm_session_user');
+      return;
+    }
+    localStorage.setItem('wm_session_user', sessionUser);
+  }, [sessionUser]);
   useEffect(() => localStorage.setItem('wm_income', JSON.stringify(income)), [income]);
   useEffect(() => localStorage.setItem('wm_transactions', JSON.stringify(transactions)), [transactions]);
   useEffect(() => localStorage.setItem('wm_bills', JSON.stringify(bills)), [bills]);
@@ -191,7 +211,57 @@ export default function App() {
     return normalized;
   };
 
+  const handleAuthenticate = ({ username, password, mode }) => {
+    const normalizedUsername = (username || '').trim();
+    const normalizedPassword = (password || '').trim();
+
+    if (!normalizedUsername || !normalizedPassword) {
+      return { ok: false, message: 'Username and password are required.' };
+    }
+
+    if (mode === 'register') {
+      if (authCredentials) {
+        return { ok: false, message: 'An account already exists. Please log in.' };
+      }
+
+      setAuthCredentials({ username: normalizedUsername, password: normalizedPassword });
+      setSessionUser(normalizedUsername);
+      return { ok: true };
+    }
+
+    if (!authCredentials) {
+      return { ok: false, message: 'No account found yet. Create one first.' };
+    }
+
+    if (
+      normalizedUsername === authCredentials.username &&
+      normalizedPassword === authCredentials.password
+    ) {
+      setSessionUser(normalizedUsername);
+      return { ok: true };
+    }
+
+    return { ok: false, message: 'Invalid username or password.' };
+  };
+
+  const handleLogout = () => {
+    setSessionUser('');
+    setActiveTab('dashboard');
+  };
+
   const theme = createTheme(isDark);
+
+  if (!sessionUser) {
+    return (
+      <AuthView
+        theme={theme}
+        isDark={isDark}
+        setIsDark={setIsDark}
+        hasAccount={Boolean(authCredentials)}
+        onAuthenticate={handleAuthenticate}
+      />
+    );
+  }
 
   return (
     <div className={`min-h-screen ${theme.bg} font-sans transition-colors duration-300`}>
@@ -201,11 +271,24 @@ export default function App() {
           setActiveTab={setActiveTab}
           isDark={isDark}
           setIsDark={setIsDark}
+          sessionUser={sessionUser}
+          onLogout={handleLogout}
           theme={theme}
         />
 
         <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
           <div className="max-w-6xl mx-auto">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className={`${theme.textMuted} text-sm`}>
+                Signed in as <span className={`${theme.text} font-semibold`}>{sessionUser}</span>
+              </p>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-1.5 text-sm rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40 transition-colors"
+              >
+                Log out
+              </button>
+            </div>
             {activeTab === 'dashboard' && (
               <DashboardView
                 theme={theme}
