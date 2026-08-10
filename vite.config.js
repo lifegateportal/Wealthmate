@@ -6,9 +6,17 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    server: {
+      proxy: {
+        '/api': 'http://localhost:8787',
+      },
+    },
     define: {
       'import.meta.env.VITE_DEEPSEEK_API_KEY': JSON.stringify(
         env.VITE_DEEPSEEK_API_KEY || env.DEEPSEEK_API_KEY || ''
+      ),
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
+        env.VITE_API_BASE_URL || ''
       ),
     },
   };

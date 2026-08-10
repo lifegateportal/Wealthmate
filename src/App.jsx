@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Navigation from './components/Navigation';
 import AuthView from './views/AuthView';
 import DashboardView from './views/DashboardView';
@@ -9,16 +9,19 @@ import ScannerView from './views/ScannerView';
 import AdvisorView from './views/AdvisorView';
 import { TRANSACTION_CATEGORIES } from './utils/constants';
 import { createTheme } from './utils/theme';
+import { loginUser, registerUser, saveUserState } from './utils/cloudSync';
 import { formatCurrency } from './utils/format';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDark, setIsDark] = useState(() => JSON.parse(localStorage.getItem('wm_dark')) || false);
-  const [authCredentials, setAuthCredentials] = useState(() => {
-    const saved = localStorage.getItem('wm_auth_credentials');
+  const [sessionAuth, setSessionAuth] = useState(() => {
+    const saved = sessionStorage.getItem('wm_session_auth');
     return saved ? JSON.parse(saved) : null;
   });
-  const [sessionUser, setSessionUser] = useState(() => localStorage.getItem('wm_session_user') || '');
+  const [cloudSyncError, setCloudSyncError] = useState('');
+  const hasLoadedCloudState = useRef(false);
+  const syncTimeoutRef = useRef(null);
 
   const [income, setIncome] = useState(() => JSON.parse(localStorage.getItem('wm_income')) || 5000);
   const [transactions, setTransactions] = useState(() => {
@@ -76,19 +79,12 @@ export default function App() {
 
   useEffect(() => localStorage.setItem('wm_dark', JSON.stringify(isDark)), [isDark]);
   useEffect(() => {
-    if (!authCredentials) {
-      localStorage.removeItem('wm_auth_credentials');
+    if (!sessionAuth) {
+      sessionStorage.removeItem('wm_session_auth');
       return;
     }
-    localStorage.setItem('wm_auth_credentials', JSON.stringify(authCredentials));
-  }, [authCredentials]);
-  useEffect(() => {
-    if (!sessionUser) {
-      localStorage.removeItem('wm_session_user');
-      return;
-    }
-    localStorage.setItem('wm_session_user', sessionUser);
-  }, [sessionUser]);
+    sessionStorage.setItem('wm_session_auth', JSON.stringify(sessionAuth));
+  }, [sessionAuth]);
   useEffect(() => localStorage.setItem('wm_income', JSON.stringify(income)), [income]);
   useEffect(() => localStorage.setItem('wm_transactions', JSON.stringify(transactions)), [transactions]);
   useEffect(() => localStorage.setItem('wm_bills', JSON.stringify(bills)), [bills]);
@@ -219,37 +215,79 @@ export default function App() {
       return { ok: false, message: 'Username and password are required.' };
     }
 
-    if (mode === 'register') {
-      if (authCredentials) {
-        return { ok: false, message: 'An account already exists. Please log in.' };
+    return Promise.resolve().then(async () => {
+      try {
+        const payload = { username: normalizedUsername, password: normalizedPassword };
+        const response = mode === 'register' ? await registerUser(payload) : await loginUser(payload);
+
+        const cloudState = response?.state;
+        if (cloudState && typeof cloudState === 'object') {
+          if (typeof cloudState.isDark === 'boolean') setIsDark(cloudState.isDark);
+          if (typeof cloudState.income === 'number') setIncome(cloudState.income);
+          if (Array.isArray(cloudState.transactions)) setTransactions(cloudState.transactions);
+          if (Array.isArray(cloudState.bills)) setBills(cloudState.bills);
+          if (Array.isArray(cloudState.budgets)) setBudgets(cloudState.budgets);
+          if (Array.isArray(cloudState.savingsGoals)) setSavingsGoals(cloudState.savingsGoals);
+          if (Array.isArray(cloudState.categories) && cloudState.categories.length > 0) {
+            setCategories(cloudState.categories);
+          }
+        }
+
+        hasLoadedCloudState.current = true;
+        setSessionAuth(payload);
+        setCloudSyncError('');
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: error.message || 'Authentication failed.' };
       }
-
-      setAuthCredentials({ username: normalizedUsername, password: normalizedPassword });
-      setSessionUser(normalizedUsername);
-      return { ok: true };
-    }
-
-    if (!authCredentials) {
-      return { ok: false, message: 'No account found yet. Create one first.' };
-    }
-
-    if (
-      normalizedUsername === authCredentials.username &&
-      normalizedPassword === authCredentials.password
-    ) {
-      setSessionUser(normalizedUsername);
-      return { ok: true };
-    }
-
-    return { ok: false, message: 'Invalid username or password.' };
+    });
   };
 
   const handleLogout = () => {
-    setSessionUser('');
+    setSessionAuth(null);
+    hasLoadedCloudState.current = false;
     setActiveTab('dashboard');
   };
 
+  useEffect(() => {
+    if (!sessionAuth || !hasLoadedCloudState.current) return;
+
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    const stateSnapshot = {
+      isDark,
+      income,
+      transactions,
+      bills,
+      budgets,
+      savingsGoals,
+      categories,
+    };
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        await saveUserState({
+          username: sessionAuth.username,
+          password: sessionAuth.password,
+          state: stateSnapshot,
+        });
+        setCloudSyncError('');
+      } catch (error) {
+        setCloudSyncError(error.message || 'Could not sync to cloud.');
+      }
+    }, 800);
+
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, [sessionAuth, isDark, income, transactions, bills, budgets, savingsGoals, categories]);
+
   const theme = createTheme(isDark);
+  const sessionUser = sessionAuth?.username || '';
 
   if (!sessionUser) {
     return (
@@ -257,7 +295,6 @@ export default function App() {
         theme={theme}
         isDark={isDark}
         setIsDark={setIsDark}
-        hasAccount={Boolean(authCredentials)}
         onAuthenticate={handleAuthenticate}
       />
     );
@@ -289,6 +326,11 @@ export default function App() {
                 Log out
               </button>
             </div>
+            {cloudSyncError && (
+              <div className="mb-4 rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-500">
+                {cloudSyncError}
+              </div>
+            )}
             {activeTab === 'dashboard' && (
               <DashboardView
                 theme={theme}

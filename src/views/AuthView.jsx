@@ -5,30 +5,32 @@ export default function AuthView({
   theme,
   isDark,
   setIsDark,
-  hasAccount,
   onAuthenticate,
 }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode] = useState(hasAccount ? 'login' : 'register');
+  const [mode, setMode] = useState('login');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
-    const result = onAuthenticate({ username, password, mode });
+    const result = await onAuthenticate({ username, password, mode });
     if (!result.ok) {
       setError(result.message || 'Unable to continue. Please try again.');
+      setIsSubmitting(false);
       return;
     }
 
     setUsername('');
     setPassword('');
+    setIsSubmitting(false);
   };
 
   const switchTo = mode === 'login' ? 'register' : 'login';
-  const canSwitchMode = !(hasAccount && mode === 'register');
 
   return (
     <div className={`min-h-dvh ${theme.bg} px-4 py-8 sm:px-6 sm:py-10 flex items-center justify-center`}>
@@ -84,23 +86,21 @@ export default function AuthView({
 
             {error && <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-500">{error}</div>}
 
-            <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition-colors">
+            <button type="submit" disabled={isSubmitting} className="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60">
               {mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
 
-          {canSwitchMode && (
-            <button
-              type="button"
-              onClick={() => {
-                setMode(switchTo);
-                setError('');
-              }}
-              className={`mt-4 w-full text-sm ${theme.textMuted} hover:text-indigo-500 transition-colors`}
-            >
-              {mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setMode(switchTo);
+              setError('');
+            }}
+            className={`mt-4 w-full text-sm ${theme.textMuted} hover:text-indigo-500 transition-colors`}
+          >
+            {mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
+          </button>
         </div>
       </div>
     </div>
